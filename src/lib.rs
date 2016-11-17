@@ -48,10 +48,12 @@ impl<'a, T> WheelBuf<'a, T> {
         self.data.len()
     }
 
+    #[inline]
     pub fn len(&self) -> usize {
         cmp::min(self.total, self.capacity())
     }
 
+    #[inline]
     pub fn iter(&'a self) -> WheelBufIter<'a, T> {
         WheelBufIter {
             buffer: &self,
@@ -59,6 +61,7 @@ impl<'a, T> WheelBuf<'a, T> {
         }
     }
 
+    #[inline]
     fn read_start(&self) -> usize {
         self.pos - (self.len() % self.capacity())
     }
@@ -67,6 +70,7 @@ impl<'a, T> WheelBuf<'a, T> {
 impl<'a, T> Iterator for WheelBufIter<'a, T> {
     type Item = &'a T;
 
+    #[inline]
     fn next(&mut self) -> Option<&'a T> {
         if self.cur >= self.buffer.len() {
             return None;
@@ -77,6 +81,7 @@ impl<'a, T> Iterator for WheelBufIter<'a, T> {
         Some(&self.buffer.data[(self.buffer.read_start() + cur) % self.buffer.capacity()])
     }
 
+    #[inline]
     fn nth(&mut self, n: usize) -> Option<Self::Item> {
         let max_idx = cmp::min(self.buffer.total, self.buffer.capacity());
 
