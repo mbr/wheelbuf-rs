@@ -1,6 +1,4 @@
-// #![no_std]
-
-extern crate core;
+#![no_std]
 
 use core::cmp;
 
@@ -73,10 +71,12 @@ impl<'a, T> Iterator for WheelBufIter<'a, T> {
     }
 }
 
+#[cfg(test)]
+#[macro_use]
+extern crate std;
 
 #[cfg(test)]
 mod tests {
-    use std;
     use std::string::String;
     use super::*;
 
