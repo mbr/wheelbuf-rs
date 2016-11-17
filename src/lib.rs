@@ -2,6 +2,7 @@
 
 use core::cmp;
 
+#[derive(Debug)]
 pub struct WheelBuf<'a, T: 'a> {
     /// Reference to backend store
     data: &'a mut [T],
@@ -13,6 +14,7 @@ pub struct WheelBuf<'a, T: 'a> {
     total: usize,
 }
 
+#[derive(Debug)]
 pub struct WheelBufIter<'a, T: 'a> {
     buffer: &'a WheelBuf<'a, T>,
     cur: usize,
