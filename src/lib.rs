@@ -57,19 +57,24 @@ impl<'a, T> WheelBuf<'a, T> {
             cur: 0,
         }
     }
+
+    fn read_start(&self) -> usize {
+        self.pos - (self.len() % self.capacity())
+    }
 }
 
 impl<'a, T> Iterator for WheelBufIter<'a, T> {
     type Item = &'a T;
 
     fn next(&mut self) -> Option<&'a T> {
-        if self.cur >= self.buffer.total || self.cur >= self.buffer.capacity() {
+        if self.cur >= self.buffer.len() {
             return None;
         }
 
-        let rv = Some(&self.buffer.data[(self.buffer.pos + self.cur) % self.buffer.capacity()]);
+        let cur = self.cur;
         self.cur += 1;
-        rv
+        Some(&self.buffer.data[(self.buffer.read_start() + cur) % self.buffer.capacity()])
+    }
     }
 }
 
@@ -91,6 +96,7 @@ mod tests {
         wheel.push('e');
         wheel.push('l');
         assert_eq!(wheel.len(), 3);
+        assert_eq!(*wheel.iter().next().unwrap(), 'H');
 
         wheel.push('l');
         wheel.push('o');
