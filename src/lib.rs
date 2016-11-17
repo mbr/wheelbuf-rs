@@ -1,6 +1,7 @@
 #![no_std]
 
 use core::cmp;
+use core::fmt::Write;
 
 #[derive(Debug)]
 pub struct WheelBuf<'a, T: 'a> {
@@ -87,12 +88,22 @@ impl<'a, T> Iterator for WheelBufIter<'a, T> {
     }
 }
 
+impl<'a> Write for WheelBuf<'a, char> {
+    fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
+        for c in s.chars() {
+            self.push(c)
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 #[macro_use]
 extern crate std;
 
 #[cfg(test)]
 mod tests {
+    use core::fmt::Write;
     use std::string::String;
     use super::*;
 
@@ -134,5 +145,15 @@ mod tests {
         assert_eq!(*wheel.iter().nth(1).unwrap(), 'e');
         assert_eq!(*wheel.iter().nth(2).unwrap(), 'l');
         assert!(wheel.iter().nth(3).is_none());
+    }
+
+    #[test]
+    fn test_write() {
+        let mut buf = ['x'; 8];
+        let mut wheel = WheelBuf::new(&mut buf);
+
+        write!(wheel, "Hello, World! {}", 123).unwrap();
+        let s: String = wheel.iter().cloned().collect();
+        assert_eq!(s.as_str(), "rld! 123");
     }
 }
