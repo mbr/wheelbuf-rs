@@ -75,6 +75,15 @@ impl<'a, T> Iterator for WheelBufIter<'a, T> {
         self.cur += 1;
         Some(&self.buffer.data[(self.buffer.read_start() + cur) % self.buffer.capacity()])
     }
+
+    fn nth(&mut self, n: usize) -> Option<Self::Item> {
+        let max_idx = cmp::min(self.buffer.total, self.buffer.capacity());
+
+        if n > 0 {
+            self.cur += cmp::min(n, max_idx);
+        }
+
+        self.next()
     }
 }
 
@@ -110,5 +119,17 @@ mod tests {
 
         let s: String = wheel.iter().cloned().collect();
         assert_eq!(s.as_str(), "lo World");
+    }
+
+    #[test]
+    fn test_nth() {
+        let mut buf = ['x'; 8];
+        let mut wheel = WheelBuf::new(&mut buf);
+
+        wheel.push('H');
+        wheel.push('e');
+        wheel.push('l');
+
+        assert_eq!(*wheel.iter().nth(1).unwrap(), 'e');
     }
 }
