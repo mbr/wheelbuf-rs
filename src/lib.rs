@@ -130,6 +130,9 @@ mod tests {
         wheel.push('e');
         wheel.push('l');
 
+        assert_eq!(*wheel.iter().nth(0).unwrap(), 'H');
         assert_eq!(*wheel.iter().nth(1).unwrap(), 'e');
+        assert_eq!(*wheel.iter().nth(2).unwrap(), 'l');
+        assert!(wheel.iter().nth(3).is_none());
     }
 }
