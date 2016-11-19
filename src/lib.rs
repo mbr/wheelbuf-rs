@@ -1,33 +1,46 @@
 #![no_std]
 
 use core::cmp;
+use core::convert::AsRef;
+use core::marker::PhantomData;
 use core::fmt::Write;
 
 #[derive(Debug)]
-pub struct WheelBuf<'a, T: 'a> {
+pub struct WheelBuf<C, I>
+    where C: AsMut<[I]> + AsRef<[I]>
+{
     /// Reference to backend store
-    data: &'a mut [T],
+    data: C,
 
     /// Insert position
     pos: usize,
 
     /// Total items written
     total: usize,
+
+    _pd: PhantomData<I>,
 }
 
 #[derive(Debug)]
-pub struct WheelBufIter<'a, T: 'a> {
-    buffer: &'a WheelBuf<'a, T>,
+pub struct WheelBufIter<'a, C, I>
+    where C: AsMut<[I]> + AsRef<[I]>,
+          I: 'a,
+          C: 'a
+{
+    buffer: &'a WheelBuf<C, I>,
     cur: usize,
 }
 
-impl<'a, T> WheelBuf<'a, T> {
+impl<C, I> WheelBuf<C, I>
+    where C: AsMut<[I]> + AsRef<[I]>
+{
     #[inline]
-    pub fn new(data: &'a mut [T]) -> WheelBuf<'a, T> {
+    pub fn new(data: C) -> WheelBuf<C, I> {
         WheelBuf {
             data: data,
             pos: 0,
             total: 0,
+            _pd: PhantomData,
         }
     }
 
@@ -37,15 +50,15 @@ impl<'a, T> WheelBuf<'a, T> {
     }
 
     #[inline]
-    pub fn push(&mut self, item: T) {
-        self.data[self.pos] = item;
+    pub fn push(&mut self, item: I) {
+        self.data.as_mut()[self.pos] = item;
         self.total += 1;
-        self.pos = (self.pos + 1) % self.data.len();
+        self.pos = (self.pos + 1) % self.data.as_ref().len();
     }
 
     #[inline]
     pub fn capacity(&self) -> usize {
-        self.data.len()
+        self.data.as_ref().len()
     }
 
     #[inline]
@@ -54,7 +67,7 @@ impl<'a, T> WheelBuf<'a, T> {
     }
 
     #[inline]
-    pub fn iter(&'a self) -> WheelBufIter<'a, T> {
+    pub fn iter<'a>(&'a self) -> WheelBufIter<'a, C, I> {
         WheelBufIter {
             buffer: &self,
             cur: 0,
@@ -67,18 +80,22 @@ impl<'a, T> WheelBuf<'a, T> {
     }
 }
 
-impl<'a, T> Iterator for WheelBufIter<'a, T> {
-    type Item = &'a T;
+impl<'a, C, I> Iterator for WheelBufIter<'a, C, I>
+    where C: AsMut<[I]> + AsRef<[I]>,
+          I: 'a,
+          C: 'a
+{
+    type Item = &'a I;
 
     #[inline]
-    fn next(&mut self) -> Option<&'a T> {
+    fn next(&mut self) -> Option<Self::Item> {
         if self.cur >= self.buffer.len() {
             return None;
         }
 
         let cur = self.cur;
         self.cur += 1;
-        Some(&self.buffer.data[(self.buffer.read_start() + cur) % self.buffer.capacity()])
+        Some(&self.buffer.data.as_ref()[(self.buffer.read_start() + cur) % self.buffer.capacity()])
     }
 
     #[inline]
@@ -93,7 +110,9 @@ impl<'a, T> Iterator for WheelBufIter<'a, T> {
     }
 }
 
-impl<'a> Write for WheelBuf<'a, char> {
+impl<C> Write for WheelBuf<C, char>
+    where C: AsMut<[char]> + AsRef<[char]>
+{
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
         for c in s.chars() {
             self.push(c)
