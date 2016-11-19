@@ -9,7 +9,7 @@ use core::fmt::Write;
 pub struct WheelBuf<C, I>
     where C: AsMut<[I]> + AsRef<[I]>
 {
-    /// Reference to backend store
+    /// Backend store
     data: C,
 
     /// Insert position
@@ -132,7 +132,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_basics() {
+    fn basics() {
         let mut buf = ['x'; 8];
         let mut wheel = WheelBuf::new(&mut buf);
 
@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn test_nth() {
+    fn nth() {
         let mut buf = ['x'; 8];
         let mut wheel = WheelBuf::new(&mut buf);
 
@@ -172,7 +172,7 @@ mod tests {
     }
 
     #[test]
-    fn test_write() {
+    fn write() {
         let mut buf = ['x'; 8];
         let mut wheel = WheelBuf::new(&mut buf);
 
