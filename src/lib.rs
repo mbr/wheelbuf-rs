@@ -1,3 +1,13 @@
+//! Multi-read no_std ring buffer
+//!
+//! The wheelbuffer crate offers a ringbuffer-like structure without a read
+//! pointer, making multiple reads of a buffer possible. Instead of relying on
+//! a fixed data structure as a backend, it is generic over a type `C` that
+//! offers the slice interface, e.g. a vector or even a static array.
+//!
+//! The create performs no allocations itself and does not use the standard
+//! library (`#![no_std]`).
+
 #![no_std]
 
 use core::cmp;
@@ -5,6 +15,9 @@ use core::convert::AsRef;
 use core::marker::PhantomData;
 use core::fmt::Write;
 
+//! A multi-read Ringbuffer.
+//!
+//! The Write trait is implemented for `char` buffers, see below.
 #[derive(Debug)]
 pub struct WheelBuf<C, I>
     where C: AsMut<[I]> + AsRef<[I]>
@@ -21,6 +34,7 @@ pub struct WheelBuf<C, I>
     _pd: PhantomData<I>,
 }
 
+//! WheelBuf iterator
 #[derive(Debug)]
 pub struct WheelBufIter<'a, C, I>
     where C: AsMut<[I]> + AsRef<[I]>,
@@ -34,6 +48,10 @@ pub struct WheelBufIter<'a, C, I>
 impl<C, I> WheelBuf<C, I>
     where C: AsMut<[I]> + AsRef<[I]>
 {
+    /// Creates a new WheelBuf.
+    ///
+    /// `data` is a backing data structure that must be convertible into a
+    /// slice. The `len()` of data determines the size of the buffer.
     #[inline]
     pub fn new(data: C) -> WheelBuf<C, I> {
         WheelBuf {
@@ -44,11 +62,15 @@ impl<C, I> WheelBuf<C, I>
         }
     }
 
+    /// Total number of entries seen.
+    ///
+    /// A non-resetting counter of the number of entries added.
     #[inline]
     pub fn total(&self) -> usize {
         self.total
     }
 
+    /// Add item to wheel buffer.
     #[inline]
     pub fn push(&mut self, item: I) {
         self.data.as_mut()[self.pos] = item;
@@ -56,16 +78,21 @@ impl<C, I> WheelBuf<C, I>
         self.pos = (self.pos + 1) % self.data.as_ref().len();
     }
 
+    /// Capacity of wheel buffer.
+    ///
+    /// Always equal to `len()` of underlying `data`.
     #[inline]
     pub fn capacity(&self) -> usize {
         self.data.as_ref().len()
     }
 
+    /// Number of items in buffer.
     #[inline]
     pub fn len(&self) -> usize {
         cmp::min(self.total, self.capacity())
     }
 
+    /// Creates an iterator over buffer.
     #[inline]
     pub fn iter<'a>(&'a self) -> WheelBufIter<'a, C, I> {
         WheelBufIter {
