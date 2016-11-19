@@ -180,4 +180,29 @@ mod tests {
         let s: String = wheel.iter().cloned().collect();
         assert_eq!(s.as_str(), "rld! 123");
     }
+
+    #[test]
+    fn using_vec() {
+        let mut buf = vec!['x', 'x', 'x', 'x', 'x', 'x', 'x', 'x'];
+        let mut wheel = WheelBuf::new(&mut buf);
+
+        wheel.push('H');
+        wheel.push('e');
+        wheel.push('l');
+        assert_eq!(wheel.len(), 3);
+        assert_eq!(*wheel.iter().next().unwrap(), 'H');
+
+        wheel.push('l');
+        wheel.push('o');
+        wheel.push(' ');
+        wheel.push('W');
+        wheel.push('o');
+        wheel.push('r');
+        wheel.push('l');
+        wheel.push('d');
+        assert_eq!(wheel.len(), 8);
+
+        let s: String = wheel.iter().cloned().collect();
+        assert_eq!(s.as_str(), "lo World");
+    }
 }
