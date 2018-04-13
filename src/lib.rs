@@ -1,12 +1,28 @@
-//! Multi-read no_std ring buffer
+//! # Multi-read `no_std` ring buffer
 //!
 //! The wheelbuffer crate offers a ringbuffer-like structure without a read
 //! pointer, making multiple reads of a buffer possible. Instead of relying on
 //! a fixed data structure as a backend, it is generic over a type `C` that
 //! offers the slice interface, e.g. a vector or even a static array.
 //!
-//! The create performs no allocations itself and does not use the standard
+//! The crate performs no allocations itself and does not use the standard
 //! library (`#![no_std]`).
+//!
+//!
+//! ## Example
+//!
+//! ```rust
+//! let mut wheel = wheelbuf::WheelBuf::new(['x'; 3]);
+//!
+//! assert!(wheel.is_empty());
+//!
+//! wheel.push('a');
+//! wheel.push('b');
+//! wheel.push('c');
+//! wheel.push('d'); // Capacity 3: 'a' gets pushed out.
+//!
+//! assert!(wheel.iter().eq(['b', 'c', 'd'].iter()));
+//! ```
 
 #![no_std]
 
@@ -15,12 +31,13 @@ use core::convert::AsRef;
 use core::marker::PhantomData;
 use core::fmt::Write;
 
-//! A multi-read Ringbuffer.
-//!
-//! The Write trait is implemented for `char` buffers, see below.
+/// A multi-read Ringbuffer.
+///
+/// The Write trait is implemented for `char` buffers, see below.
 #[derive(Debug)]
 pub struct WheelBuf<C, I>
-    where C: AsMut<[I]> + AsRef<[I]>
+where
+    C: AsMut<[I]> + AsRef<[I]>,
 {
     /// Backend store
     data: C,
@@ -34,28 +51,30 @@ pub struct WheelBuf<C, I>
     _pd: PhantomData<I>,
 }
 
-//! WheelBuf iterator
+/// `WheelBuf` iterator
 #[derive(Debug)]
 pub struct WheelBufIter<'a, C, I>
-    where C: AsMut<[I]> + AsRef<[I]>,
-          I: 'a,
-          C: 'a
+where
+    C: AsMut<[I]> + AsRef<[I]>,
+    I: 'a,
+    C: 'a,
 {
     buffer: &'a WheelBuf<C, I>,
     cur: usize,
 }
 
 impl<C, I> WheelBuf<C, I>
-    where C: AsMut<[I]> + AsRef<[I]>
+where
+    C: AsMut<[I]> + AsRef<[I]>,
 {
     /// Creates a new WheelBuf.
     ///
     /// `data` is a backing data structure that must be convertible into a
-    /// slice. The `len()` of data determines the size of the buffer.
+    /// slice. The `len()` of `data` determines the size of the buffer.
     #[inline]
     pub fn new(data: C) -> WheelBuf<C, I> {
         WheelBuf {
-            data: data,
+            data,
             pos: 0,
             total: 0,
             _pd: PhantomData,
@@ -64,13 +83,14 @@ impl<C, I> WheelBuf<C, I>
 
     /// Total number of entries seen.
     ///
-    /// A non-resetting counter of the number of entries added.
+    /// A non-resetting counter of the number of entries added, including
+    /// those that have already been overwritten.
     #[inline]
     pub fn total(&self) -> usize {
         self.total
     }
 
-    /// Add item to wheel buffer.
+    /// Adds an item to the wheel buffer.
     #[inline]
     pub fn push(&mut self, item: I) {
         self.data.as_mut()[self.pos] = item;
@@ -92,11 +112,17 @@ impl<C, I> WheelBuf<C, I>
         cmp::min(self.total, self.capacity())
     }
 
+    /// Returns `true` if there is no item in the buffer.
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.total == 0 || self.capacity() == 0
+    }
+
     /// Creates an iterator over buffer.
     #[inline]
-    pub fn iter<'a>(&'a self) -> WheelBufIter<'a, C, I> {
+    pub fn iter(&self) -> WheelBufIter<C, I> {
         WheelBufIter {
-            buffer: &self,
+            buffer: self,
             cur: 0,
         }
     }
@@ -108,9 +134,10 @@ impl<C, I> WheelBuf<C, I>
 }
 
 impl<'a, C, I> Iterator for WheelBufIter<'a, C, I>
-    where C: AsMut<[I]> + AsRef<[I]>,
-          I: 'a,
-          C: 'a
+where
+    C: AsMut<[I]> + AsRef<[I]>,
+    I: 'a,
+    C: 'a,
 {
     type Item = &'a I;
 
@@ -138,7 +165,8 @@ impl<'a, C, I> Iterator for WheelBufIter<'a, C, I>
 }
 
 impl<C> Write for WheelBuf<C, char>
-    where C: AsMut<[char]> + AsRef<[char]>
+where
+    C: AsMut<[char]> + AsRef<[char]>,
 {
     fn write_str(&mut self, s: &str) -> Result<(), core::fmt::Error> {
         for c in s.chars() {
